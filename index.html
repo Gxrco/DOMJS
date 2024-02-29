@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+
+<body>
+  <script type="application/javascript">
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.body.style.overflow = 'hidden';
+
+    const style = document.createElement('style');
+    style.textContent = `
+    .dark-mode {
+        background-color: #000;
+        color: #fff;
+    }
+    .dark-mode .content {
+        background-color: #333;
+    }
+    .dark-mode .messages-list {
+        background-color: #666;
+    }
+    .dark-mode .message-bar {
+        background-color: #999;
+    }
+    .dark-mode .message {
+        background-color: #666666;
+    }
+    .light-mode {
+        background-color: #fff;
+        color: #000;
+    }
+    .light-mode .content {
+        background-color: #f0f0f0;
+    }
+    .light-mode .messages-list {
+        background-color: #00300;
+    }
+    .light-mode .message-bar {
+        background-color: #b0b0b0;
+    }
+    .light-mode .message {
+        background-color: #d0d0d0;
+    }
+`;
+
+    document.head.append(style);
+
+    const content = document.createElement('div');
+    content.classList.add('content');
+    content.style.width = '100vw';
+    content.style.height = '100vh';
+    content.style.backgroundColor = '#f0f0f0';
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.alignItems = 'center';
+    content.style.justifyContent = 'center';
+    content.style.padding = '10px';
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.alignItems = 'center';
+    content.style.justifyContent = 'center';
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.flexDirection = 'column';
+    buttonContainer.style.width = '22%';
+    buttonContainer.style.height = '100%';
+
+    const messages_list = document.createElement('div');
+    messages_list.classList.add('messages-list');
+    messages_list.style.width = '100%';
+    messages_list.style.height = '80vh';
+    messages_list.style.backgroundColor = '#00300';
+    messages_list.style.overflowY = 'auto';
+
+    const message_bar = document.createElement('div');
+    message_bar.classList.add('message-bar');
+    message_bar.style.width = '100%';
+    message_bar.style.height = '20vh';
+    message_bar.style.backgroundColor = '#b0b0b0';
+    message_bar.style.display = 'flex';
+    message_bar.style.justifyContent = 'space-between';
+    message_bar.style.padding = '2vh';
+
+    const ul = document.createElement('ul');
+    ul.style.maxWidth = '98%';
+    ul.style.margin = '0 auto';
+    ul.style.listStyleType = 'none';
+    ul.style.paddingLeft = '0';
+    ul.scrollTop = ul.scrollHeight;
+
+    const t = document.createElement('textarea');
+    t.style.width = '78%';
+    t.style.height = '100%';
+    t.setAttribute('maxlength', '140');
+
+    const anotherButton = document.createElement('button');
+    anotherButton.style.width = '100%';
+    anotherButton.style.height = '50%';
+    anotherButton.append('DARK MODE');
+
+    const b = document.createElement('button');
+    b.style.width = '100%';
+    b.style.height = '50%';
+    b.append('SEND');
+
+
+    buttonContainer.append(b, anotherButton);
+    messages_list.append(ul);
+    message_bar.append(t, buttonContainer);
+    content.append(messages_list, message_bar);
+    document.body.append(content);
+
+    const getMessages = async () => {
+      const response = await fetch('https://chat.tiburoncin.lat/messages')
+      const messages = await response.json()
+      const ul = document.querySelector('ul');
+      const isAtBottom = messages_list.scrollHeight - messages_list.clientHeight <= messages_list.scrollTop + 1;
+      ul.innerHTML = '';
+
+      messages.reverse().forEach((message) => {
+        const li = document.createElement('li');
+        li.classList.add('message');
+        li.style.wordWrap = 'break-word';
+        li.style.padding = '10px';
+        li.style.marginBottom = '10px';
+        li.style.borderRadius = '10px';
+        li.style.maxWidth = '80%';
+
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        if (urlRegex.test(message.message)) {
+          const imageRegex = /\.(jpeg|jpg|gif|png)$/;
+          if (imageRegex.test(message.message)) {
+            const img = document.createElement('img');
+            img.src = message.message;
+            img.style.maxWidth = '100%';
+            li.append(`${message.username}: `, img);
+          } else {
+            const a = document.createElement('a');
+            a.href = message.message;
+            a.textContent = message.message;
+            li.append(`${message.username}: `, a);
+
+            fetch(`https://noembed.com/embed?url=${message.message}`)
+              .then(response => response.json())
+              .then(data => {
+                const title = document.createElement('p');
+                title.textContent = data.title;
+                const description = document.createElement('p');
+                description.textContent = data.description;
+                li.append(title, description);
+              })
+              .catch(error => console.error('Error:', error));
+          }
+        } else {
+          li.append(`${message.username}: ${message.message}`);
+        }
+
+        if (message.username === 'Gerco') {
+          li.style.backgroundColor = '#b0b0b0';
+          li.style.marginLeft = 'auto';
+        } else {
+          li.style.backgroundColor = '#d0d0d0';
+          li.style.marginRight = 'auto';
+        }
+
+        ul.append(li);
+      });
+      if (isAtBottom) {
+        messages_list.scrollTop = messages_list.scrollHeight;
+      }
+    }
+
+    const postMessage = async () => {
+      console.log(t.value)
+      const body = {
+        username: 'Gerco',
+        message: t.value,
+      }
+      const response = await fetch('https://chat.tiburoncin.lat/messages',
+        {
+          method: 'POST',
+          body: JSON.stringify(body)
+        })
+      t.value = '';
+      getMessages();
+    }
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const darkMode = localStorage.getItem('dark-mode') === 'true';
+      content.classList.toggle('dark-mode', darkMode);
+      content.classList.toggle('light-mode', !darkMode);
+      anotherButton.textContent = darkMode ? 'LIGHT MODE' : 'DARK MODE';
+    });
+
+    anotherButton.addEventListener('click', () => {
+      const darkMode = content.classList.contains('dark-mode');
+      content.classList.toggle('dark-mode');
+      content.classList.toggle('light-mode');
+      anotherButton.textContent = darkMode ? 'DARK MODE' : 'LIGHT MODE';
+      localStorage.setItem('dark-mode', !darkMode);
+    });
+    b.addEventListener('click', postMessage)
+
+    t.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        postMessage();
+      }
+    });
+
+    setInterval(getMessages(), 5000);
+  </script>
+</body>
+
+</html>
